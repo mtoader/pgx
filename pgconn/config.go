@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -748,7 +749,11 @@ func parseEnvSettings() map[string]string {
 		"PGREQUIREAUTH":        "require_auth",
 	}
 
-	for envname, realname := range nameMap {
+	// In a fixed order: go test's cache keys a result on the environment
+	// variables the test read, in the order it read them, so a map's order
+	// would make every test that parses a config miss the cache.
+	for _, envname := range slices.Sorted(maps.Keys(nameMap)) {
+		realname := nameMap[envname]
 		value, present := os.LookupEnv(envname)
 		// Preserve an explicitly empty sslcertmode so it is rejected, like libpq.
 		if value != "" || (present && realname == "sslcertmode") {
